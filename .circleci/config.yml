@@ -27,4 +27,4 @@ workflows:
     jobs:
       - build-and-verify:
           context:
-            - openai-context
+            - OpenAI-context
