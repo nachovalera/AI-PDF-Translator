@@ -17,6 +17,10 @@ jobs:
           name: Verify project compiles
           command: |
             python -m py_compile app.py ai_pdf_translator/*.py
+      - run:
+          name: Run unit tests
+          command: |
+            pytest -q
 
 workflows:
   build:

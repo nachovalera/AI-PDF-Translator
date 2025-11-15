@@ -47,6 +47,12 @@ Environment variables (set them in `.env` or your shell):
 
 Lowering `MAX_CHARS_PER_CHUNK` trades throughput for higher reliability on very large files.
 
+## Testing
+Run the automated test suite (also executed in CircleCI) with:
+```bash
+pytest
+```
+
 ## Notes & next steps
 - Add support for more advanced formatting (tables, images) in the generated PDF if needed.
 - Extend the language list or add automatic language detection.
