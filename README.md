@@ -2,6 +2,16 @@
 
 Translate long PDFs between languages using OpenAI and a friendly Gradio UI. By default the app translates English → Spanish, but you can switch to any supported pair in the interface.
 
+<p align="center">
+  <img src="docs/ui-screenshot.jpeg" alt="AI PDF Translator UI - finished translation" width="650" />
+</p>
+<details>
+  <summary>Show loading state screenshot</summary>
+  <p align="center">
+    <img src="docs/ui-screenshot-loading.jpeg" alt="AI PDF Translator UI - translating" width="650" />
+  </p>
+</details>
+
 ## Features
 - Extracts text from PDFs of arbitrary length using `pypdf`
 - Splits content into configurable chunks so 100+ page documents can be processed safely
