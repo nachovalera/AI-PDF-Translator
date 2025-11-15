@@ -13,9 +13,6 @@ from .pdf_utils import chunk_text, extract_text_from_pdf, text_to_pdf
 from .settings import DEFAULT_MODEL
 
 
-CLIENT = get_client()
-
-
 def _extract_response_text(response) -> str:
     output_text = getattr(response, "output_text", None)
     if output_text:
@@ -60,7 +57,8 @@ def translate_chunk(
         "headers, and quotations. Do not add commentary, only provide the translated text."
     )
 
-    response = CLIENT.responses.create(
+    client = get_client()
+    response = client.responses.create(
         model=model,
         input=[
             {"role": "system", "content": prompt},
