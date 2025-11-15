@@ -5,13 +5,13 @@ Translate long PDFs between languages using OpenAI and a friendly Gradio UI. By 
 ## Features
 - Extracts text from PDFs of arbitrary length using `pypdf`
 - Splits content into configurable chunks so 100+ page documents can be processed safely
-- Uses the OpenAI Responses API for high-quality translations while preserving structure
+- Uses the OpenAI Chat Completions API for high-quality translations while preserving structure
 - Provides a browser-based Gradio interface for uploading PDFs, reading the translated output, and downloading it as a fresh PDF whose filename mirrors the original with a `{src}_to_{dst}` suffix
 
 ## Requirements
 - Python 3.10+
 - OpenAI API key with access to GPT-5-mini (or another translation-capable model)
-- `fonts/DejaVuSans.ttf` is included for Unicode-safe PDF exports (sourced from the [DejaVu fonts project](https://dejavu-fonts.github.io/))
+- `fonts/DejaVuSans.ttf` is bundled for Unicode-safe PDF exports (sourced from the [DejaVu fonts project](https://dejavu-fonts.github.io/) and redistributed under `fonts/DejaVuSans-LICENSE.txt`)
 - Generated PDFs are stored locally under `translated_pdfs/` (ignored by git) using the original filename plus the language suffix
 
 ## Setup
@@ -35,6 +35,10 @@ Translate long PDFs between languages using OpenAI and a friendly Gradio UI. By 
 python app.py
 ```
 Gradio starts a local server and prints URLs in the terminal. Open the `http://127.0.0.1:7860` link, upload a PDF, choose source/target languages, and click **Translate PDF**. The translated text appears in the textbox, and a **Download translated PDF** button lets you grab a PDF version of the translation.
+
+## Data handling
+- Uploaded PDFs are read locally and the extracted text is sent to OpenAI's Chat Completions API for translation. Avoid using the app with documents that contain confidential or regulated information unless your OpenAI account allows it.
+- Translated PDFs are written to `translated_pdfs/` on your machine and are never uploaded anywhere.
 
 ## Configuration
 Environment variables (set them in `.env` or your shell):
