@@ -57,3 +57,9 @@ Integration tests hit the real OpenAI API; they run only when both `OPENAI_API_K
 ## Notes & next steps
 - Add support for more advanced formatting (tables, images) in the generated PDF if needed.
 - Extend the language list or add automatic language detection.
+
+## Contributing
+Issues and pull requests are welcome. Please run `pytest` (and set `RUN_OPENAI_TESTS=1` if you want to include integration tests) before opening a PR.
+
+## License
+Released under the [MIT License](LICENSE).
