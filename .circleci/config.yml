@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Run unit tests
           command: |
-            pytest -q
+            RUN_OPENAI_TESTS=1 pytest -q
 
 workflows:
   build:

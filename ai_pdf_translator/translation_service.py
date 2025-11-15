@@ -58,15 +58,15 @@ def translate_chunk(
     )
 
     client = get_client()
-    response = client.responses.create(
+    response = client.chat.completions.create(
         model=model,
-        input=[
+        messages=[
             {"role": "system", "content": prompt},
             {"role": "user", "content": chunk},
         ],
     )
 
-    return _extract_response_text(response)
+    return response.choices[0].message.content or ""
 
 
 def translate_pdf(
