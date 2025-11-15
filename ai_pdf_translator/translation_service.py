@@ -13,37 +13,6 @@ from .pdf_utils import chunk_text, extract_text_from_pdf, text_to_pdf
 from .settings import DEFAULT_MODEL
 
 
-def _extract_response_text(response) -> str:
-    output_text = getattr(response, "output_text", None)
-    if output_text:
-        return output_text
-
-    segments: List[str] = []
-    for item in getattr(response, "output", []) or []:
-        if getattr(item, "type", None) == "message":
-            for content in getattr(item, "content", []) or []:
-                if getattr(content, "type", None) == "text":
-                    segments.append(content.text)
-
-    if segments:
-        return "".join(segments)
-
-    choices = getattr(response, "choices", None)
-    if choices:
-        first = choices[0]
-        message = getattr(first, "message", {})
-        content = message.get("content") if isinstance(message, dict) else None
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            return "".join(
-                fragment if isinstance(fragment, str) else fragment.get("text", "")
-                for fragment in content
-            )
-
-    return ""
-
-
 def translate_chunk(
     chunk: str,
     *,
