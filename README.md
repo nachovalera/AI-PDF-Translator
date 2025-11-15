@@ -47,6 +47,13 @@ Environment variables (set them in `.env` or your shell):
 
 Lowering `MAX_CHARS_PER_CHUNK` trades throughput for higher reliability on very large files.
 
+## Testing
+Run the automated test suite (also executed in CircleCI) with:
+```bash
+pytest
+```
+Integration tests hit the real OpenAI API; they run only when both `OPENAI_API_KEY` and `RUN_OPENAI_TESTS=1` are set (CircleCI sets both via project settings). Locally you can omit `RUN_OPENAI_TESTS` to skip them.
+
 ## Notes & next steps
 - Add support for more advanced formatting (tables, images) in the generated PDF if needed.
 - Extend the language list or add automatic language detection.

@@ -17,8 +17,14 @@ jobs:
           name: Verify project compiles
           command: |
             python -m py_compile app.py ai_pdf_translator/*.py
+      - run:
+          name: Run unit tests
+          command: |
+            RUN_OPENAI_TESTS=1 pytest -q
 
 workflows:
   build:
     jobs:
-      - build-and-verify
+      - build-and-verify:
+          context:
+            - OpenAI-context
