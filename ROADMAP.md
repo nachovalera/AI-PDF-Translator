@@ -10,8 +10,8 @@ Track the status of planned features and improvements. Update this file as items
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 1 | Abstract AI provider interface (`TranslationProvider` protocol/ABC) | ⬜ Planned | Foundation for all multi-provider work; refactor `translation_service.py` to depend on interface, not OpenAI SDK directly |
-| 2 | Anthropic Claude as alternative translation provider | ⬜ Planned | Implement `AnthropicProvider`; add `TRANSLATION_PROVIDER` env var (`openai` \| `anthropic`) |
+| 1 | Abstract AI provider interface (`TranslationProvider` protocol/ABC) | ✅ Done | `provider.py`: `TranslationProvider` protocol, `OpenAIProvider`, `TranslationError`, `get_provider()` factory; `translation_service.py` decoupled from OpenAI SDK |
+| 2 | Anthropic Claude as alternative translation provider | ⬜ Planned | Implement `AnthropicProvider` in `provider.py`; add `elif` branch in `get_provider()` |
 | 3 | Multi-provider comparison mode | ⬜ Planned | Translate same PDF with 2+ providers simultaneously; show results side-by-side in UI |
 | 4 | Third-party PDF translation service integration (e.g. DeepL Document API) | ⬜ Planned | Research + implement services that accept full PDFs and return translated PDFs |
 
@@ -65,4 +65,5 @@ Track the status of planned features and improvements. Update this file as items
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
+| 1 | Abstract AI provider interface (`TranslationProvider` protocol/ABC) | ✅ Done | `provider.py`: protocol, `OpenAIProvider`, `TranslationError`, `get_provider()` factory |
 | 5 | Expand test suite with TDD approach | ✅ Done | 48 unit tests across 5 test files; covers settings, openai_client, pdf_utils, translation_service |

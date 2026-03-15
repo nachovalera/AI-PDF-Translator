@@ -6,7 +6,7 @@ This file provides guidance for AI assistants (Claude, Copilot, etc.) working in
 
 ## Project Overview
 
-AI-PDF-Translator is a Python application that translates PDF documents between languages using the OpenAI Chat Completions API. It exposes a Gradio web UI for file upload, language selection, and downloading translated PDFs.
+AI-PDF-Translator is a Python application that translates PDF documents between languages using a pluggable provider architecture (OpenAI by default). It exposes a Gradio web UI for file upload, language selection, and downloading translated PDFs.
 
 ---
 
@@ -16,8 +16,9 @@ AI-PDF-Translator is a Python application that translates PDF documents between 
 AI-PDF-Translator/
 ├── app.py                          # Entry point — launches Gradio app
 ├── ai_pdf_translator/              # Core package
-│   ├── __init__.py                 # Exports: build_interface, translate_pdf
+│   ├── __init__.py                 # Exports: build_interface, translate_pdf, provider types
 │   ├── settings.py                 # Config constants & env variable loading
+│   ├── provider.py                 # TranslationProvider protocol, OpenAIProvider, factory
 │   ├── openai_client.py            # Singleton OpenAI client factory
 │   ├── pdf_utils.py                # PDF extraction, chunking, and generation
 │   ├── translation_service.py      # Translation orchestration (main workflow)
@@ -25,7 +26,8 @@ AI-PDF-Translator/
 ├── tests/
 │   ├── conftest.py                 # Adds repo root to sys.path
 │   ├── test_pdf_utils.py           # Unit tests for pdf_utils
-│   ├── test_translation_service.py # Unit tests with mocked OpenAI calls
+│   ├── test_provider.py            # Unit tests for provider abstraction
+│   ├── test_translation_service.py # Unit tests with mocked providers
 │   └── test_integration_openai.py  # Integration tests (real OpenAI API)
 ├── fonts/
 │   └── DejaVuSans.ttf              # Unicode font for PDF output
@@ -70,6 +72,7 @@ python app.py                      # Opens Gradio UI at http://localhost:7860
 | `OPENAI_API_KEY` | Yes | — | OpenAI API key (sk-...) |
 | `OPENAI_TRANSLATION_MODEL` | No | `gpt-4o-mini` | Chat model to use for translation |
 | `MAX_CHARS_PER_CHUNK` | No | `3500` | Max characters per translation chunk |
+| `TRANSLATION_PROVIDER` | No | `openai` | Translation backend (`openai`; more coming) |
 
 Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env` file is git-ignored — never commit it.
 
@@ -80,6 +83,13 @@ Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env
 ### `settings.py`
 - Defines `ROOT_DIR`, `FONT_PATH`, and `PDF_OUTPUT_DIR` (the `translated_pdfs/` directory).
 - `ensure_api_key()` raises `ValueError` if `OPENAI_API_KEY` is missing — called before any OpenAI usage.
+
+### `provider.py`
+- Defines `TranslationProvider` protocol (single method: `translate()`).
+- `OpenAIProvider` implements it using the `get_client()` singleton from `openai_client.py`.
+- `get_provider(name)` factory returns the correct provider based on `TRANSLATION_PROVIDER` env var.
+- `TranslationError` is the common exception type; provider implementations catch SDK-specific errors and wrap them.
+- New providers should be added as classes in this file (or in separate files) and registered in `get_provider()`.
 
 ### `openai_client.py`
 - Implements a **singleton pattern**: `get_client()` creates the `OpenAI` instance once and reuses it.
@@ -92,8 +102,9 @@ Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env
 - The `translated_pdfs/` output directory is git-ignored.
 
 ### `translation_service.py`
-- `translate_chunk(chunk, source_lang, target_lang)` — sends a single chunk to the OpenAI Chat API with a professional translator system prompt.
+- `translate_chunk(chunk, source_lang, target_lang)` — delegates to the active `TranslationProvider` to translate a single chunk.
 - `translate_pdf(pdf_file, source_lang, target_lang, progress)` — full orchestration: extract → chunk → translate each chunk (with Gradio progress updates) → combine → write PDF. Returns `(translated_text: str, pdf_path: str)`.
+- `set_provider(provider)` — override the module-level provider (useful for testing). Pass `None` to reset.
 
 ### `interface.py`
 - Supported languages: English, Spanish, French, German, Italian, Portuguese.
@@ -119,7 +130,7 @@ RUN_OPENAI_TESTS=1 pytest
 Integration tests in `test_integration_openai.py` are skipped unless both `OPENAI_API_KEY` and `RUN_OPENAI_TESTS=1` are set.
 
 ### Writing tests
-- Unit tests mock `translate_chunk` via `monkeypatch` — do not make real API calls in unit tests.
+- Unit tests use `set_provider()` with a fake provider or mock `translate_chunk` — do not make real API calls in unit tests.
 - Use `@pytest.mark.integration` for any test that calls an external service.
 - `conftest.py` adds the repo root to `sys.path`; no special import tricks are needed.
 
@@ -145,7 +156,7 @@ All tests (including integration) must pass in CI before merging.
 ## Coding Conventions
 
 - **Python 3.10+** — use modern type hints (`list[str]` not `List[str]`).
-- Follow existing module boundaries; do not add OpenAI calls outside `openai_client.py` and `translation_service.py`.
+- Follow existing module boundaries; do not add OpenAI calls outside `openai_client.py` and `provider.py`.
 - Use `settings.py` constants (`FONT_PATH`, `PDF_OUTPUT_DIR`, etc.) instead of hardcoded paths.
 - Keep the `get_client()` singleton — avoid creating multiple `OpenAI()` instances.
 - Gradio progress callbacks are passed into `translate_pdf()`; update them at meaningful steps (extraction, each chunk translation).
