@@ -6,7 +6,7 @@ This file provides guidance for AI assistants (Claude, Copilot, etc.) working in
 
 ## Project Overview
 
-AI-PDF-Translator is a Python application that translates PDF documents between languages using a pluggable provider architecture (OpenAI by default). It exposes a Gradio web UI for file upload, language selection, and downloading translated PDFs.
+AI-PDF-Translator is a Python application that translates PDF documents between languages using a pluggable provider architecture (OpenAI by default, Anthropic Claude supported). It exposes a Gradio web UI for file upload, language selection, and downloading translated PDFs.
 
 ---
 
@@ -18,17 +18,20 @@ AI-PDF-Translator/
 ├── ai_pdf_translator/              # Core package
 │   ├── __init__.py                 # Exports: build_interface, translate_pdf, provider types
 │   ├── settings.py                 # Config constants & env variable loading
-│   ├── provider.py                 # TranslationProvider protocol, OpenAIProvider, factory
+│   ├── provider.py                 # TranslationProvider protocol, OpenAIProvider, AnthropicProvider, factory
 │   ├── openai_client.py            # Singleton OpenAI client factory
+│   ├── anthropic_client.py         # Singleton Anthropic client factory
 │   ├── pdf_utils.py                # PDF extraction, chunking, and generation
 │   ├── translation_service.py      # Translation orchestration (main workflow)
 │   └── interface.py                # Gradio UI definition
 ├── tests/
 │   ├── conftest.py                 # Adds repo root to sys.path
 │   ├── test_pdf_utils.py           # Unit tests for pdf_utils
-│   ├── test_provider.py            # Unit tests for provider abstraction
+│   ├── test_provider.py            # Unit tests for provider abstraction + contract tests
 │   ├── test_translation_service.py # Unit tests with mocked providers
-│   └── test_integration_openai.py  # Integration tests (real OpenAI API)
+│   ├── test_anthropic_client.py    # Unit tests for Anthropic client singleton
+│   ├── test_integration_openai.py  # Integration tests (real OpenAI API)
+│   └── test_integration_anthropic.py # Integration tests (real Anthropic API)
 ├── fonts/
 │   └── DejaVuSans.ttf              # Unicode font for PDF output
 ├── .circleci/config.yml            # CI pipeline (Python 3.11)
@@ -44,7 +47,8 @@ AI-PDF-Translator/
 | Component | Library/Tool | Version |
 |-----------|-------------|---------|
 | Web UI | Gradio | ≥ 4.24.0 |
-| LLM API | OpenAI Python SDK | ≥ 1.14.0 |
+| LLM API (OpenAI) | OpenAI Python SDK | ≥ 1.14.0 |
+| LLM API (Anthropic) | Anthropic Python SDK | ≥ 0.20.0 |
 | PDF reading | pypdf | ≥ 4.2.0 |
 | PDF writing | fpdf2 | ≥ 2.7.8 |
 | Env config | python-dotenv | ≥ 1.0.1 |
@@ -59,7 +63,7 @@ AI-PDF-Translator/
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env               # Then fill in OPENAI_API_KEY
+cp .env.example .env               # Then fill in OPENAI_API_KEY or ANTHROPIC_API_KEY
 python app.py                      # Opens Gradio UI at http://localhost:7860
 ```
 
@@ -69,10 +73,12 @@ python app.py                      # Opens Gradio UI at http://localhost:7860
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `OPENAI_API_KEY` | Yes | — | OpenAI API key (sk-...) |
-| `OPENAI_TRANSLATION_MODEL` | No | `gpt-4o-mini` | Chat model to use for translation |
+| `OPENAI_API_KEY` | Yes (OpenAI) | — | OpenAI API key (sk-...) |
+| `OPENAI_TRANSLATION_MODEL` | No | `gpt-4o-mini` | OpenAI chat model for translation |
+| `ANTHROPIC_API_KEY` | Yes (Anthropic) | — | Anthropic API key (sk-ant-...) |
+| `ANTHROPIC_TRANSLATION_MODEL` | No | `claude-haiku-4-5-20251001` | Anthropic model for translation |
 | `MAX_CHARS_PER_CHUNK` | No | `3500` | Max characters per translation chunk |
-| `TRANSLATION_PROVIDER` | No | `openai` | Translation backend (`openai`; more coming) |
+| `TRANSLATION_PROVIDER` | No | `openai` | Translation backend (`openai` or `anthropic`) |
 
 Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env` file is git-ignored — never commit it.
 
@@ -82,18 +88,25 @@ Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env
 
 ### `settings.py`
 - Defines `ROOT_DIR`, `FONT_PATH`, and `PDF_OUTPUT_DIR` (the `translated_pdfs/` directory).
-- `ensure_api_key()` raises `ValueError` if `OPENAI_API_KEY` is missing — called before any OpenAI usage.
+- `ensure_api_key()` raises `RuntimeError` if `OPENAI_API_KEY` is missing — called before any OpenAI usage.
+- `ensure_anthropic_api_key()` raises `RuntimeError` if `ANTHROPIC_API_KEY` is missing — called before any Anthropic usage.
 
 ### `provider.py`
 - Defines `TranslationProvider` protocol (single method: `translate()`).
 - `OpenAIProvider` implements it using the `get_client()` singleton from `openai_client.py`.
-- `get_provider(name)` factory returns the correct provider based on `TRANSLATION_PROVIDER` env var.
+- `AnthropicProvider` implements it using the `get_client()` singleton from `anthropic_client.py`.
+- Both providers expose a `default_model` class attribute used by `translate_chunk` when no model is specified.
+- `get_provider(name)` factory returns the correct provider; supports `"openai"` and `"anthropic"`.
 - `TranslationError` is the common exception type; provider implementations catch SDK-specific errors and wrap them.
-- New providers should be added as classes in this file (or in separate files) and registered in `get_provider()`.
+- New providers should be added as classes in this file and registered in `get_provider()`.
 
 ### `openai_client.py`
 - Implements a **singleton pattern**: `get_client()` creates the `OpenAI` instance once and reuses it.
 - Do not instantiate `OpenAI()` directly elsewhere; always call `get_client()`.
+
+### `anthropic_client.py`
+- Implements a **singleton pattern**: `get_client()` creates the `anthropic.Anthropic` instance once and reuses it.
+- Do not instantiate `anthropic.Anthropic()` directly elsewhere; always call `get_client()`.
 
 ### `pdf_utils.py`
 - `extract_text_from_pdf(source)` — accepts a file path (str/Path) or raw bytes.
@@ -102,7 +115,7 @@ Variables are loaded from `.env` via `python-dotenv` in `settings.py`. The `.env
 - The `translated_pdfs/` output directory is git-ignored.
 
 ### `translation_service.py`
-- `translate_chunk(chunk, source_lang, target_lang)` — delegates to the active `TranslationProvider` to translate a single chunk.
+- `translate_chunk(chunk, source_lang, target_lang, model=None)` — delegates to the active `TranslationProvider`. When `model` is `None`, falls back to the provider's `default_model` attribute.
 - `translate_pdf(pdf_file, source_lang, target_lang, progress)` — full orchestration: extract → chunk → translate each chunk (with Gradio progress updates) → combine → write PDF. Returns `(translated_text: str, pdf_path: str)`.
 - `set_provider(provider)` — override the module-level provider (useful for testing). Pass `None` to reset.
 
@@ -127,12 +140,19 @@ pytest
 RUN_OPENAI_TESTS=1 pytest
 ```
 
-Integration tests in `test_integration_openai.py` are skipped unless both `OPENAI_API_KEY` and `RUN_OPENAI_TESTS=1` are set.
+### Run Anthropic integration tests
+
+```bash
+RUN_ANTHROPIC_TESTS=1 pytest tests/test_integration_anthropic.py
+```
+
+Integration tests in `test_integration_openai.py` are skipped unless both `OPENAI_API_KEY` and `RUN_OPENAI_TESTS=1` are set. Similarly, `test_integration_anthropic.py` requires `ANTHROPIC_API_KEY` and `RUN_ANTHROPIC_TESTS=1`.
 
 ### Writing tests
 - Unit tests use `set_provider()` with a fake provider or mock `translate_chunk` — do not make real API calls in unit tests.
 - Use `@pytest.mark.integration` for any test that calls an external service.
 - `conftest.py` adds the repo root to `sys.path`; no special import tricks are needed.
+- Provider contract tests (`TestProviderContract` in `test_provider.py`) are parameterized over all providers — add new providers there when implementing them.
 
 ### Compile check (mirrors CI)
 
@@ -156,9 +176,9 @@ All tests (including integration) must pass in CI before merging.
 ## Coding Conventions
 
 - **Python 3.10+** — use modern type hints (`list[str]` not `List[str]`).
-- Follow existing module boundaries; do not add OpenAI calls outside `openai_client.py` and `provider.py`.
+- Follow existing module boundaries; do not add OpenAI calls outside `openai_client.py` and `provider.py`, and do not add Anthropic calls outside `anthropic_client.py` and `provider.py`.
 - Use `settings.py` constants (`FONT_PATH`, `PDF_OUTPUT_DIR`, etc.) instead of hardcoded paths.
-- Keep the `get_client()` singleton — avoid creating multiple `OpenAI()` instances.
+- Keep the singleton pattern — avoid creating multiple client instances directly.
 - Gradio progress callbacks are passed into `translate_pdf()`; update them at meaningful steps (extraction, each chunk translation).
 - New languages should be added to the `LANGUAGES` list in `interface.py` only.
 
@@ -168,6 +188,6 @@ All tests (including integration) must pass in CI before merging.
 
 - Do not commit `.env` or any file containing API keys.
 - Do not write to `translated_pdfs/` outside of `text_to_pdf()`.
-- Do not bypass `ensure_api_key()` — it is the single gate for missing credentials.
+- Do not bypass `ensure_api_key()` or `ensure_anthropic_api_key()` — they are the single gates for missing credentials.
 - Do not add real HTTP calls to unit tests; mock external dependencies.
 - Do not add new dependencies without updating `requirements.txt`.

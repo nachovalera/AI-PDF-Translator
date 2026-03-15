@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from typing import Protocol, runtime_checkable
 
+import anthropic as anthropic_sdk
 from openai import OpenAI, OpenAIError
 
+from .anthropic_client import get_client as get_anthropic_client
 from .openai_client import get_client
-from .settings import TRANSLATION_PROVIDER
+from .settings import ANTHROPIC_TRANSLATION_MODEL, DEFAULT_MODEL, TRANSLATION_PROVIDER
 
 
 class TranslationError(Exception):
@@ -42,6 +44,8 @@ def _build_system_prompt(source_lang: str, target_lang: str) -> str:
 class OpenAIProvider:
     """TranslationProvider backed by the OpenAI Chat Completions API."""
 
+    default_model: str = DEFAULT_MODEL
+
     def __init__(self, client: OpenAI | None = None) -> None:
         self._client = client
 
@@ -72,6 +76,40 @@ class OpenAIProvider:
             raise TranslationError(str(exc)) from exc
 
 
+class AnthropicProvider:
+    """TranslationProvider backed by the Anthropic Messages API."""
+
+    default_model: str = ANTHROPIC_TRANSLATION_MODEL
+
+    def __init__(self, client: anthropic_sdk.Anthropic | None = None) -> None:
+        self._client = client
+
+    @property
+    def client(self) -> anthropic_sdk.Anthropic:
+        if self._client is None:
+            self._client = get_anthropic_client()
+        return self._client
+
+    def translate(
+        self,
+        text: str,
+        *,
+        source_lang: str,
+        target_lang: str,
+        model: str,
+    ) -> str:
+        try:
+            message = self.client.messages.create(
+                model=model,
+                max_tokens=4096,
+                system=_build_system_prompt(source_lang, target_lang),
+                messages=[{"role": "user", "content": text}],
+            )
+            return message.content[0].text
+        except anthropic_sdk.APIError as exc:
+            raise TranslationError(str(exc)) from exc
+
+
 def get_provider(name: str | None = None) -> TranslationProvider:
     """Return a TranslationProvider instance for the given name.
 
@@ -80,9 +118,11 @@ def get_provider(name: str | None = None) -> TranslationProvider:
     provider_name = (name or TRANSLATION_PROVIDER).lower()
     if provider_name == "openai":
         return OpenAIProvider()
+    if provider_name == "anthropic":
+        return AnthropicProvider()
     raise ValueError(
         f"Unknown translation provider: {provider_name!r}. "
-        f"Supported providers: 'openai'"
+        f"Supported providers: 'openai', 'anthropic'"
     )
 
 
@@ -90,6 +130,7 @@ __all__ = [
     "TranslationError",
     "TranslationProvider",
     "OpenAIProvider",
+    "AnthropicProvider",
     "_build_system_prompt",
     "get_provider",
 ]
