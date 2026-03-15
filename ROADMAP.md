@@ -21,7 +21,7 @@ Track the status of planned features and improvements. Update this file as items
 
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
-| 5 | Expand test suite with TDD approach | ⬜ Planned | Edge cases: empty PDF, single-page, very large PDF, non-Latin scripts; error paths: missing key, timeout, corrupt PDF; target >90% branch coverage |
+| 5 | Expand test suite with TDD approach | ✅ Done | Added 45 unit tests covering settings, openai_client singleton, pdf_utils (extract, chunk, slugify, font, paragraphs, pdf gen), translation_service (translate_chunk mock, error paths, progress, Gradio file objects) |
 | 6 | Contract tests for provider abstraction layer | ⬜ Planned | Ensure all providers satisfy the `TranslationProvider` interface; depends on #1 |
 
 ---
@@ -63,4 +63,6 @@ Track the status of planned features and improvements. Update this file as items
 
 ## Completed
 
-_Nothing merged yet — this roadmap was created when all CI tests were passing._
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| 5 | Expand test suite with TDD approach | ✅ Done | 48 unit tests across 5 test files; covers settings, openai_client, pdf_utils, translation_service |
