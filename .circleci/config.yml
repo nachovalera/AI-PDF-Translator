@@ -20,7 +20,7 @@ jobs:
       - run:
           name: Run unit tests
           command: |
-            RUN_OPENAI_TESTS=1 pytest -q
+            RUN_OPENAI_TESTS=1 RUN_ANTHROPIC_TESTS=1 pytest -q
 
 workflows:
   build:
