@@ -34,14 +34,15 @@ def translate_chunk(
     *,
     source_lang: str,
     target_lang: str,
-    model: str = DEFAULT_MODEL,
+    model: str | None = None,
 ) -> str:
     provider = _get_provider()
+    resolved_model = model if model is not None else getattr(provider, "default_model", DEFAULT_MODEL)
     return provider.translate(
         chunk,
         source_lang=source_lang,
         target_lang=target_lang,
-        model=model,
+        model=resolved_model,
     )
 
 

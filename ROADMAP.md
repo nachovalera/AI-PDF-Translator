@@ -11,7 +11,7 @@ Track the status of planned features and improvements. Update this file as items
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 1 | Abstract AI provider interface (`TranslationProvider` protocol/ABC) | ✅ Done | `provider.py`: `TranslationProvider` protocol, `OpenAIProvider`, `TranslationError`, `get_provider()` factory; `translation_service.py` decoupled from OpenAI SDK |
-| 2 | Anthropic Claude as alternative translation provider | ⬜ Planned | Implement `AnthropicProvider` in `provider.py`; add `elif` branch in `get_provider()` |
+| 2 | Anthropic Claude as alternative translation provider | ✅ Done | `AnthropicProvider` in `provider.py`; `anthropic_client.py` singleton; `get_provider("anthropic")` factory; set `TRANSLATION_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to use |
 | 3 | Multi-provider comparison mode | ⬜ Planned | Translate same PDF with 2+ providers simultaneously; show results side-by-side in UI |
 | 4 | Third-party PDF translation service integration (e.g. DeepL Document API) | ⬜ Planned | Research + implement services that accept full PDFs and return translated PDFs |
 
@@ -22,7 +22,7 @@ Track the status of planned features and improvements. Update this file as items
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 5 | Expand test suite with TDD approach | ✅ Done | Added 45 unit tests covering settings, openai_client singleton, pdf_utils (extract, chunk, slugify, font, paragraphs, pdf gen), translation_service (translate_chunk mock, error paths, progress, Gradio file objects) |
-| 6 | Contract tests for provider abstraction layer | ⬜ Planned | Ensure all providers satisfy the `TranslationProvider` interface; depends on #1 |
+| 6 | Contract tests for provider abstraction layer | ✅ Done | `TestProviderContract` in `test_provider.py` — parameterized over OpenAI and Anthropic providers; verifies protocol compliance, return types, error wrapping, and `default_model` attribute |
 
 ---
 
@@ -66,4 +66,6 @@ Track the status of planned features and improvements. Update this file as items
 | # | Feature | Status | Notes |
 |---|---------|--------|-------|
 | 1 | Abstract AI provider interface (`TranslationProvider` protocol/ABC) | ✅ Done | `provider.py`: protocol, `OpenAIProvider`, `TranslationError`, `get_provider()` factory |
+| 2 | Anthropic Claude as alternative translation provider | ✅ Done | `AnthropicProvider` + `anthropic_client.py` singleton; `TRANSLATION_PROVIDER=anthropic` env var |
 | 5 | Expand test suite with TDD approach | ✅ Done | 48 unit tests across 5 test files; covers settings, openai_client, pdf_utils, translation_service |
+| 6 | Contract tests for provider abstraction layer | ✅ Done | Parameterized `TestProviderContract` in `test_provider.py`; covers both OpenAI and Anthropic |
