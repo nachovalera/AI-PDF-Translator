@@ -16,6 +16,7 @@ FONT_PATH = ROOT_DIR / "fonts" / "DejaVuSans.ttf"
 PDF_OUTPUT_DIR = ROOT_DIR / "translated_pdfs"
 DEFAULT_MODEL = os.getenv("OPENAI_TRANSLATION_MODEL", "gpt-5-mini")
 MAX_CHARS_PER_CHUNK = int(os.getenv("MAX_CHARS_PER_CHUNK", 3500))
+TRANSLATION_PROVIDER = os.getenv("TRANSLATION_PROVIDER", "openai")
 
 
 def ensure_api_key() -> None:
@@ -30,5 +31,6 @@ __all__ = [
     "PDF_OUTPUT_DIR",
     "DEFAULT_MODEL",
     "MAX_CHARS_PER_CHUNK",
+    "TRANSLATION_PROVIDER",
     "ensure_api_key",
 ]

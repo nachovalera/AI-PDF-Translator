@@ -1,16 +1,32 @@
-"""Translation orchestration using OpenAI and PDF helpers."""
+"""Translation orchestration using provider abstraction and PDF helpers."""
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
 
 import gradio as gr
-from openai import OpenAIError
 
-from .openai_client import get_client
+from .provider import TranslationError, TranslationProvider, get_provider
 from .pdf_utils import chunk_text, extract_text_from_pdf, text_to_pdf
 from .settings import DEFAULT_MODEL
+
+
+_provider: TranslationProvider | None = None
+
+
+def _get_provider() -> TranslationProvider:
+    """Return the module-level provider, lazily initialised."""
+    global _provider
+    if _provider is None:
+        _provider = get_provider()
+    return _provider
+
+
+def set_provider(provider: TranslationProvider | None) -> None:
+    """Override the module-level provider. Pass None to reset to default."""
+    global _provider
+    _provider = provider
 
 
 def translate_chunk(
@@ -20,22 +36,13 @@ def translate_chunk(
     target_lang: str,
     model: str = DEFAULT_MODEL,
 ) -> str:
-    prompt = (
-        "You are a professional translator. Translate the user's text from "
-        f"{source_lang} to {target_lang}. Preserve the original structure, lists, "
-        "headers, and quotations. Do not add commentary, only provide the translated text."
-    )
-
-    client = get_client()
-    response = client.chat.completions.create(
+    provider = _get_provider()
+    return provider.translate(
+        chunk,
+        source_lang=source_lang,
+        target_lang=target_lang,
         model=model,
-        messages=[
-            {"role": "system", "content": prompt},
-            {"role": "user", "content": chunk},
-        ],
     )
-
-    return response.choices[0].message.content or ""
 
 
 def translate_pdf(
@@ -55,7 +62,7 @@ def translate_pdf(
         return "No extractable text found in the PDF.", None
 
     chunks = chunk_text(text)
-    translated_chunks: List[str] = []
+    translated_chunks: list[str] = []
     total = len(chunks)
 
     for idx, chunk in enumerate(chunks, start=1):
@@ -69,8 +76,8 @@ def translate_pdf(
                 source_lang=source_language,
                 target_lang=target_language,
             )
-        except OpenAIError as exc:
-            return f"OpenAI translation failed on chunk {idx}/{total}: {exc}", None
+        except TranslationError as exc:
+            return f"Translation failed on chunk {idx}/{total}: {exc}", None
 
         translated_chunks.append(translated)
 
@@ -86,4 +93,4 @@ def translate_pdf(
     return translated_text, pdf_download_path
 
 
-__all__ = ["translate_chunk", "translate_pdf"]
+__all__ = ["translate_chunk", "translate_pdf", "set_provider"]
